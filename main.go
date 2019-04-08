@@ -37,7 +37,13 @@ func validate(c *gin.Context) error {
 		return errors.New("")
 	}
 
-	realHash := "sha1=" + hex.Dump(hmac.New(sha1.New(), secretToken).Write(body).Sum(nil))
+	h := hmac.New(sha1.New, []byte(secretToken))
+	_, err = h.Write(body)
+	if err != nil {
+		return errors.New(err.Error())
+	}
+
+	realHash := "sha1=" + hex.Dump(h.Sum(nil))
 	if realHash != hashStr {
 		return errors.New("")
 	}
@@ -46,10 +52,9 @@ func validate(c *gin.Context) error {
 }
 
 func packageLatestVersin(package_name string) string {
-	s := strings.Builder{}
-	fmt.Fprintf(&s, `select * from packages where package_name = '%s'`, package_name)
+	s := fmt.Sprintf(`select * from packages where package_name = '%s'`, package_name)
 
-	rows, err := db.Query(s.String())
+	rows, err := db.Query(s)
 	if err != nil {
 		return ""
 	}
@@ -120,13 +125,12 @@ func handlePushEvent(c *gin.Context) {
 		return
 	}
 
-	insertSQL := strings.Builder{}
-	fmt.Fprintf(&insertSQL,
+	insertSQL := fmt.Sprintf(
 		`insert into need_build_git_packages values('%s', '%s', '%s');`,
 		packageName, version, "new")
 
-	debug("insertSql:", insertSQL.String())
-	if _, err = db.Exec(insertSQL.String()); err != nil {
+	debug("insertSql:", insertSQL)
+	if _, err = db.Exec(insertSQL); err != nil {
 		fmt.Println("Failed to insert package to need_build_git_package table", err.Error())
 	}
 }
@@ -142,7 +146,7 @@ func getSecretToken(token *string) error {
 	if err != nil {
 		return errors.New("") // TODO: should we just panic ?
 	}
-	*token = strings.TrimSpace(string(err))
+	*token = strings.TrimSpace(string(t))
 
 	return nil
 }

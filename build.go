@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strings"
 	"time"
 )
 
@@ -36,20 +35,18 @@ func addToRepo(packageName, version, codename string) {
 	}
 	debug("Successfully add new version of", packageName, "into repo")
 
-	updateSql := strings.Builder{}
-	fmt.Fprintf(&updateSql, `update packages
+	updateSql := fmt.Sprintf(`update packages
                                       set latest_version = '%s'
                                       where package_name = '%s'`,
 		version, packageName)
-	if _, err = db.Exec(updateSql.String()); err != nil {
+	if _, err = db.Exec(updateSql); err != nil {
 		fmt.Println("Failed to update package version in table packages")
 	}
 
-	deleteSql := strings.Builder{}
-	fmt.Fprintf(&deleteSql, `delete from need_build_git_packages
+	deleteSql := fmt.Sprintf(`delete from need_build_git_packages
                                       where package_name = '%s' and version = '%s'`,
 		packageName, version)
-	if _, err = db.Exec(deleteSql.String()); err != nil {
+	if _, err = db.Exec(deleteSql); err != nil {
 		fmt.Println("Failed to remove item from need_build_git_packages")
 	}
 }
@@ -98,13 +95,12 @@ func buildPackage(packageName, version string) {
 		return
 	}
 
-	updateSQL := strings.Builder{}
-	fmt.Fprintf(&updateSQL, `
+	updateSQL := fmt.Sprintf(`
 						update need_build_git_packages
 						set status = 'finished'
 						where package_name = '%s' and version = '%s';`, packageName, version)
 
-	if _, err = db.Exec(updateSQL.String()); err != nil {
+	if _, err = db.Exec(updateSQL); err != nil {
 		fmt.Println("Failed to update need_build_package", err.Error())
 	}
 
@@ -137,13 +133,12 @@ func build() {
 
 				if package_.status == "new" {
 					debug("New package:", package_.packageName, package_.version)
-					updateSQL := strings.Builder{}
-					fmt.Fprintf(&updateSQL, `
+					updateSQL := fmt.Sprintf(`
 						update need_build_git_packages
 						set status = 'building'
 						where package_name = '%s' and version = '%s';`, package_.packageName, package_.version)
 
-					if _, err = db.Exec(updateSQL.String()); err != nil {
+					if _, err = db.Exec(updateSQL); err != nil {
 						fmt.Println("Failed to update need_build_package", err.Error())
 						continue
 					}
