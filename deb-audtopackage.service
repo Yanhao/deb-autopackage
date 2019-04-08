@@ -1,0 +1,13 @@
+[Unit]
+Description=Service used by DebianCN to automatically buildding packages
+After=network.target
+ConditionPathExists=/var/lib/deb-buildpackage
+
+[Service]
+ExecStart=/usr/bin/deb-autopackage
+KillMode=process
+Restart=on-failure
+RuntimeDirectory=/var/lib/deb-buildpackage
+
+[Install]
+WantedBy=multi-user.target
