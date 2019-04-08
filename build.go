@@ -35,6 +35,23 @@ func addToRepo(packageName, version, codename string) {
 		return
 	}
 	debug("Successfully add new version of", packageName, "into repo")
+
+	updateSql := strings.Builder{}
+	fmt.Fprintf(&updateSql, `update packages
+                                      set latest_version = '%s'
+                                      where package_name = '%s'`,
+		version, packageName)
+	if _, err = db.Exec(updateSql.String()); err != nil {
+		fmt.Println("Failed to update package version in table packages")
+	}
+
+	deleteSql := strings.Builder{}
+	fmt.Fprintf(&deleteSql, `delete from need_build_git_packages
+                                      where package_name = '%s' and version = '%s'`,
+		packageName, version)
+	if _, err = db.Exec(deleteSql.String()); err != nil {
+		fmt.Println("Failed to remove item from need_build_git_packages")
+	}
 }
 
 func buildPackage(packageName, version string) {

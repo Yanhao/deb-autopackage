@@ -77,7 +77,7 @@ func handlePushEvent(c *gin.Context) {
 
 	debug("Tag:", tag)
 
-	validateTag := regexp.MustCompile(`debian/(.*)`)
+	validateTag := regexp.MustCompile(`debiancn/(.*)`)
 	m := validateTag.FindStringSubmatch(tag)
 	if len(m) < 2 {
 		debug("Tag is not comply to format 'debian/X.X.X', tag:", tag)
@@ -112,10 +112,12 @@ func handlePing(c *gin.Context) {
 }
 
 func main() {
-	flag.BoolVar(&enableDebugOutput, "debug", true, "enable debug output")
+	flag.BoolVar(&enableDebugOutput, "debug", false, "enable debug output")
 	flag.Parse()
 
-	//gin.SetMode(gin.ReleaseMode)
+	if !enableDebugOutput {
+		gin.SetMode(gin.ReleaseMode)
+	}
 
 	checkEnv()
 	go build()
