@@ -1,6 +1,9 @@
 package main
 
 import (
+	"crypto/hmac"
+	"crypto/sha1"
+	"encoding/hex"
 	"errors"
 	"flag"
 	"fmt"
@@ -8,19 +11,38 @@ import (
 	go_version "github.com/hashicorp/go-version"
 	_ "github.com/lib/pq"
 	"github.com/tidwall/gjson"
+	"io/ioutil"
 	"net/http"
 	"regexp"
 	"strings"
 )
 
 type Package struct {
-	packageName string
+	packageName   string
 	latestVersion string
-	gitLocation string
+	gitLocation   string
 }
 
-func validate() bool {
-	return true
+var secretToken string
+
+const tokenFile = "~/.deb-buildpackage.token"
+
+func validate(c *gin.Context) error {
+	body, err := c.GetRawData()
+	if err != nil {
+		return errors.New("Failed to get raw data from c")
+	}
+	hashStr := c.GetHeader("X-Hub-Signature")
+	if hashStr == "" {
+		return errors.New("")
+	}
+
+	realHash := "sha1=" + hex.Dump(hmac.New(sha1.New(), secretToken).Write(body).Sum(nil))
+	if realHash != hashStr {
+		return errors.New("")
+	}
+
+	return nil
 }
 
 func packageLatestVersin(package_name string) string {
@@ -60,6 +82,10 @@ func checkVersion(package_name, version string) error {
 }
 
 func handlePushEvent(c *gin.Context) {
+	if validate(c) != nil {
+		return
+	}
+
 	body, err := c.GetRawData()
 	if err != nil {
 		fmt.Println("Failed to get request body")
@@ -111,9 +137,24 @@ func handlePing(c *gin.Context) {
 	})
 }
 
+func getSecretToken(token *string) error {
+	t, err := ioutil.ReadFile(tokenFile)
+	if err != nil {
+		return errors.New("") // TODO: should we just panic ?
+	}
+	*token = strings.TrimSpace(string(err))
+
+	return nil
+}
+
 func main() {
 	flag.BoolVar(&enableDebugOutput, "debug", false, "enable debug output")
 	flag.Parse()
+
+	if getSecretToken(&secretToken) != nil {
+		fmt.Println("Failed to initilize secret token")
+		return
+	}
 
 	if !enableDebugOutput {
 		gin.SetMode(gin.ReleaseMode)
