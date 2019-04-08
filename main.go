@@ -13,6 +13,8 @@ import (
 	"github.com/tidwall/gjson"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"path"
 	"regexp"
 	"strings"
 )
@@ -25,7 +27,7 @@ type Package struct {
 
 var secretToken string
 
-const tokenFile = "~/.deb-buildpackage.token"
+const tokenFile = ".deb-buildpackage.token"
 
 func validate(c *gin.Context) error {
 	body, err := c.GetRawData()
@@ -43,7 +45,7 @@ func validate(c *gin.Context) error {
 		return errors.New(err.Error())
 	}
 
-	realHash := "sha1=" + hex.Dump(h.Sum(nil))
+	realHash := "sha1=" + hex.EncodeToString(h.Sum(nil))
 	if realHash != hashStr {
 		return errors.New("")
 	}
@@ -142,9 +144,12 @@ func handlePing(c *gin.Context) {
 }
 
 func getSecretToken(token *string) error {
-	t, err := ioutil.ReadFile(tokenFile)
+	home, _ := os.UserHomeDir()
+	absTokenFile := path.Join(home, tokenFile)
+	t, err := ioutil.ReadFile(absTokenFile)
 	if err != nil {
-		return errors.New("") // TODO: should we just panic ?
+		fmt.Println(err.Error())
+		return errors.New(err.Error())
 	}
 	*token = strings.TrimSpace(string(t))
 
