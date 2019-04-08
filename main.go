@@ -29,18 +29,14 @@ var secretToken string
 
 const tokenFile = ".deb-buildpackage.token"
 
-func validate(c *gin.Context) error {
-	body, err := c.GetRawData()
-	if err != nil {
-		return errors.New("Failed to get raw data from c")
-	}
+func validate(c *gin.Context, body []byte) error {
 	hashStr := c.GetHeader("X-Hub-Signature")
 	if hashStr == "" {
 		return errors.New("")
 	}
 
 	h := hmac.New(sha1.New, []byte(secretToken))
-	_, err = h.Write(body)
+	_, err := h.Write(body)
 	if err != nil {
 		return errors.New(err.Error())
 	}
@@ -89,13 +85,13 @@ func checkVersion(package_name, version string) error {
 }
 
 func handlePushEvent(c *gin.Context) {
-	if validate(c) != nil {
-		return
-	}
-
 	body, err := c.GetRawData()
 	if err != nil {
 		fmt.Println("Failed to get request body")
+		return
+	}
+
+	if validate(c, body) != nil {
 		return
 	}
 
@@ -113,7 +109,7 @@ func handlePushEvent(c *gin.Context) {
 	validateTag := regexp.MustCompile(`debiancn/(.*)`)
 	m := validateTag.FindStringSubmatch(tag)
 	if len(m) < 2 {
-		debug("Tag is not comply to format 'debian/X.X.X', tag:", tag)
+		debug("Tag is not comply to format 'debiancn/X.X.X', tag:", tag)
 		return
 	}
 	version := m[1]
