@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"os/exec"
@@ -61,7 +62,7 @@ func buildPackage(packageName, version string) {
 		return
 	}
 
-	err := buildCommand.Start()
+	err = buildCommand.Start()
 	if err != nil {
 		fmt.Println("Start failed:", err.Error())
 		return
