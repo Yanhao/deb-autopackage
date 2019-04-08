@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 	"os/exec"
@@ -26,11 +25,15 @@ func addToRepo(packageName, version, codename string) {
 	}
 	debug("changes file:", changesFile)
 
-	return
-	err := exec.Command("aptly", "repo", "add", codename, changesFile)
+	codenameOption := string("-repo=\"") + codename + "\""
+
+	err := exec.Command("aptly", "repo",
+		"include", "-accept-unsigned", codenameOption, changesFile).Run()
 	if err != nil {
-		//fmt.Println("Failed:", err.Error()
+		fmt.Println("Failed:", err.Error())
+		return
 	}
+	debug("Successfully add new version of", packageName, "into repo")
 }
 
 func buildPackage(packageName, version string) {
@@ -49,27 +52,31 @@ func buildPackage(packageName, version string) {
 	}
 	fmt.Println("Sync git repo successfully!")
 
-	buildCommand := exec.Command("gbp", "buildpackage", "--git-ignore-branch", "--git-pbuilder")
+	buildCommand := exec.Command("gbp", "buildpackage", "--git-ignore-branch",
+		"--git-builder=sbuild -A -v -d unstable")
+
 	output, err := buildCommand.StdoutPipe()
 	if err != nil {
-		fmt.Println("Failed:", err.Error())
+		fmt.Println("StdoutPipe failed:", err.Error())
 		return
 	}
 
-	err = buildCommand.Start()
+	err := buildCommand.Start()
 	if err != nil {
-		fmt.Println("Failed:", err.Error())
+		fmt.Println("Start failed:", err.Error())
 		return
 	}
+	debug("Building package", packageName)
 
 	scanner := bufio.NewScanner(output)
 	scanner.Split(bufio.ScanLines)
 
 	for scanner.Scan() {
-		fmt.Println(scanner.Text())
+		debug(scanner.Text())
 	}
+
 	if err = buildCommand.Wait(); err != nil {
-		fmt.Println("Failed:", err.Error())
+		fmt.Println("Wait failed:", err.Error())
 		return
 	}
 
