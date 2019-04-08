@@ -7,7 +7,6 @@ import (
 	"github.com/gin-gonic/gin"
 	go_version "github.com/hashicorp/go-version"
 	_ "github.com/lib/pq"
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/tidwall/gjson"
 	"net/http"
 	"regexp"
@@ -125,5 +124,5 @@ func main() {
 	r := gin.Default()
 	r.GET("ping", handlePing)
 	r.POST("push_event", handlePushEvent)
-	r.Run("127.0.0.1:4567")
+	r.Run("0.0.0.0:4567")
 }

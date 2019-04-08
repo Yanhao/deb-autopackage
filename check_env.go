@@ -6,7 +6,6 @@ import (
 //	"os"
 
 	_ "github.com/lib/pq"
-	_ "github.com/mattn/go-sqlite3"
 )
 
 var db *sql.DB
